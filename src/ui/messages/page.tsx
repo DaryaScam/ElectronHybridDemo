@@ -57,9 +57,9 @@ const reset = () => {
 
 export default function Messages() {
 
-  if (window.localStorage.getItem("access_token") === null) {
-    window.location.href = "/";
-  }
+  // if (window.localStorage.getItem("access_token") === null) {
+  //   window.location.href = "/";
+  // }
     
   return (
     <>
@@ -96,11 +96,10 @@ export default function Messages() {
                             'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
                           )}
                         >
-
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-700 text-white">
-                                {item.name.split(' ').map((n) => n[0]).join('')}
-                            </span>
-                            <span className='pt-2'>{item.name}</span>
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-700 text-white">
+                              {item.name.split(' ').map((n) => n[0]).join('')}
+                          </span>
+                          <span className='pt-2'>{item.name}</span>
                         </a>
                       </li>
                     ))}
