@@ -1,14 +1,11 @@
-import noble from '@abandonware/noble';
+import noble, { Peripheral } from '@abandonware/noble';
 import { MessagePortMain } from 'electron';
-import { data } from 'react-router-dom';
 
 const id = new Date().getTime().toString().slice(-4);
-
 const getLogDate = () => {
     const date = new Date();
     return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}.${date.getMilliseconds()}`;
 };
-
 
 const sendStatus = (port: MessagePortMain, cmd: string, data: any, log: string, isError: boolean = false) => {
     console.log(`-----> child-${id.slice()}: ${getLogDate()} | ${cmd} | ${isError ? "ERROR: " : ""} ${log}`);
@@ -30,7 +27,7 @@ const startPort = (port: MessagePortMain) => {
     port.on('message', (e) => {
         console.log(`-----> child-${id}: ${getLogDate()} | message received from parent`, e.data);
 
-        const { cmd, data } = e.data;
+        const { cmd } = e.data;
         switch (cmd) {
             case 'startScanning':
                 noble.startScanningAsync()
@@ -50,6 +47,7 @@ const startPort = (port: MessagePortMain) => {
                     sendStatus(port, cmd, { status: 'error', error: error }, 'Error stopping BLE scanning', true);
                 });
                 break;
+
             default:
                 console.log(`child-${id.slice()}: ${getLogDate()} | Unknown command: ${cmd}`);
                 break;
@@ -65,8 +63,9 @@ const startPort = (port: MessagePortMain) => {
                 id: peripheral.id,
                 rssi: peripheral.rssi,
                 advertisement: {
-                    localName: peripheral.advertisement.localName,
-                    serviceUuids: peripheral.advertisement.serviceUuids || []
+                    localName: peripheral.advertisement.localName || '',
+                    serviceUuids: peripheral.advertisement.serviceUuids || [],
+                    serviceData: peripheral.advertisement.serviceData || ''
                 }
             }
         }, 'Found new peripheral', false);
