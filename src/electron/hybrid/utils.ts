@@ -5,8 +5,8 @@
  * 
  */
 
-import { randomBytes } from "crypto"
-import cbor from "cbor"
+import { randomBytes } from 'crypto'
+import cbor from 'cbor'
 
 export const generateRandomBytes = (len: number = 32): Buffer => {
     return randomBytes(len)
@@ -14,7 +14,7 @@ export const generateRandomBytes = (len: number = 32): Buffer => {
 
 export const generateCoseKey = (x962key: Buffer): Buffer => {
     if (x962key.length !== 65) {
-        throw new Error("Invalid X962 key length")
+        throw new Error('Invalid X962 key length')
     }
     
     let x = x962key.subarray(1, 33)
@@ -34,10 +34,10 @@ export const generateCoseKey = (x962key: Buffer): Buffer => {
 export const digitEncodeQRBytes = (bytes: Buffer): string => {
     const chunkSize = 7
     const chunkDigits = 17
-    const zeros = "00000000000000000"
+    const zeros = '00000000000000000'
     
 
-    let ret = ""
+    let ret = ''
     while(bytes.length >= chunkSize) {
         let chunk = Buffer.alloc(8);
         bytes.subarray(0, chunkSize).copy(chunk);

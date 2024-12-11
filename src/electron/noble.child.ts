@@ -15,7 +15,7 @@ const getLogDate = () => {
 };
 
 const sendStatus = (port: MessagePortMain, cmd: string, data: any, log: string, isError: boolean = false) => {
-    console.log(`-----> child-${id.slice()}: ${getLogDate()} | ${cmd} | ${isError ? "ERROR: " : ""} ${log}`);
+    console.log(`-----> child-${id.slice()}: ${getLogDate()} | ${cmd} | ${isError ? 'ERROR: ' : ''} ${log}`);
     
     port.postMessage({ cmd, ...data });
 };

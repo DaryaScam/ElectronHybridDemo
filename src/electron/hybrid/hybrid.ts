@@ -10,11 +10,11 @@ import { digitEncodeQRBytes, generateRandomBytes } from './utils.js'
 import cbor from 'cbor'
 
 const HYBRID_MODES = {
-    GET_ASSERTION: "ga",
-    MAKE_CREDENTIAL: "mc",
-    DEVICE_CREDENTIAL_PRESENTATION: "dcp",
-    DEVICE_CREDENTIAL_ISSUANCE: "dci",
-    NON_STANDARD_TOKEN: "nst"
+    GET_ASSERTION: 'ga',
+    MAKE_CREDENTIAL: 'mc',
+    DEVICE_CREDENTIAL_PRESENTATION: 'dcp',
+    DEVICE_CREDENTIAL_ISSUANCE: 'dci',
+    NON_STANDARD_TOKEN: 'nst'
 }
 
 interface IDK {

@@ -5,16 +5,16 @@
  * 
  */
 
-import { createHash } from "crypto";
-import { EIK_KEY_PURPOSE, hybridHKDFDerive, HybridServiceDataResult } from "./crypto.js";
-import { SessionIK } from "./hybrid.js";
-import { WebSocket } from "ws";
+import { createHash } from 'crypto';
+import { EIK_KEY_PURPOSE, hybridHKDFDerive, HybridServiceDataResult } from './crypto.js';
+import { SessionIK } from './hybrid.js';
+import { WebSocket } from 'ws';
 
 
 // Assigned by FIDO Alliance CaBLE domains
 const assignedDomains = [
-    "cable.ua5v.com",
-    "cable.auth.com"
+    'cable.ua5v.com',
+    'cable.auth.com'
 ];
 
 const bigIntToBase32 = (biNum: bigint) => {
@@ -27,9 +27,9 @@ const bigIntToBase32 = (biNum: bigint) => {
     return result;
 }
 
-const allowedTlds = [".com", ".org", ".net", ".info"]
-const hashPrefix = "caBLEv2 tunnel server domain";
-const domainPrefix = "cable."
+const allowedTlds = ['.com', '.org', '.net', '.info']
+const hashPrefix = 'caBLEv2 tunnel server domain';
+const domainPrefix = 'cable.'
 
 export const calculateHybridTunnelDomain = (index: number) => {
     const indexBytes = Buffer.from([index, index >> 8, 0x00]);
@@ -80,7 +80,7 @@ export class HybridTunnel {
         this.ws = new WebSocket(this.wsslink);
    
         this.ws.onmessage = (event) => {
-            console.log("WebSocket received", event.data);
+            console.log('WebSocket received', event.data);
       
             this.listenCallbacks.forEach((callback) => {
                 callback(event.data as Buffer);
@@ -88,7 +88,7 @@ export class HybridTunnel {
         }
     
         this.ws.onopen = (event) => {
-            console.log("WebSocket connected", event);
+            console.log('WebSocket connected', event);
         
             this.open = true;
         }
@@ -96,7 +96,7 @@ export class HybridTunnel {
     
     checkConnected() {
         if (!this.open) {
-            throw new Error("WebSocket not connected");
+            throw new Error('WebSocket not connected');
         }
     }
     
@@ -106,7 +106,7 @@ export class HybridTunnel {
                 clearInterval(checkInterval);
                 clearTimeout(timeoutId);
         
-                reject(new Error("Timeout"));
+                reject(new Error('Timeout'));
             }, timeout);
     
             const checkInterval = setInterval(() => {
@@ -137,7 +137,7 @@ export class HybridTunnel {
       
         return new Promise((resolve, reject) => {
             const timeoutId = setTimeout(() => {
-                reject(new Error("Timeout"));
+                reject(new Error('Timeout'));
             }, timeout);
       
             let listener = (data: Buffer) => {
@@ -152,7 +152,7 @@ export class HybridTunnel {
     sendMessage(message: Buffer) {
         this.checkConnected();
         
-        console.log("WebSocket send", message.toString('hex'));
+        console.log('WebSocket send', message.toString('hex'));
         this.ws.send(message);
     }
       

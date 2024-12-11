@@ -18,7 +18,7 @@ function App() {
         setQrCodeUrl(url);
         setIsHybridStarted(true);
       }).catch((error: any) => {
-        console.error("The error is:", error);
+        console.error('The error is:', error);
       });
     }
   })

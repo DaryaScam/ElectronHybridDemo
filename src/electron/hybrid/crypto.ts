@@ -1,4 +1,5 @@
 /**
+ * 
  * All functions related to encryption and decryption of the hybrid service data
  * 
  * Created by Yuriy Ackermann <ackermann.yuriy@gmail.com> <@yackermann>
@@ -9,8 +10,8 @@
 
  
 
-import { createDecipheriv, createHmac, hkdfSync } from "crypto";
-import { SessionIK } from "./hybrid.js";
+import { createDecipheriv, createHmac, hkdfSync } from 'crypto';
+import { SessionIK } from './hybrid.js';
 
 export const EIK_KEY_PURPOSE = {
     EIDkey: 0x01,
