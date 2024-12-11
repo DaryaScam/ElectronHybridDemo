@@ -1,3 +1,10 @@
+/**
+ * 
+ * Created by Yuriy Ackermann <ackermann.yuriy@gmail.com> <@yackermann>
+ * As a part of DaryaScam Project <https://daryascam.info>
+ * 
+ */
+
 import noble, { Peripheral } from '@abandonware/noble';
 import { MessagePortMain } from 'electron';
 

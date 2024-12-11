@@ -6,10 +6,36 @@ import { isDev } from './util.js';
 import { getPreloadPath } from './pathResolver.js';
 import { ipcMain } from 'electron';
 import { generateQRCodeVal, generateSessionIK } from './hybrid/hybrid.js';
-import { digitEncodeQRBytes } from './hybrid/utils.js';
-import { BleSession } from './ble/ble.js';
+import { BleSession, extractServiceData, Peripheral } from './ble/ble.js';
+import { tryDecryptPayload } from './hybrid/crypto.js';
+import { calculateHybridTunnelDomain, HybridTunnel } from './hybrid/tunnel.js';
 
-app.on('ready', () => {
+const listenForHybridAdvertisement = async (): Promise<Peripheral> => {
+    return new Promise((resolve, reject) => {
+        let resultPeripheral: any = undefined;
+        let bleman: BleSession | undefined;
+
+        let searcher = setInterval(async () => {
+            try {
+                // Be a tidy person. Clean up after yourself.
+                bleman?.destroy();
+
+                bleman = new BleSession();
+
+                await bleman.startScanning();
+                resultPeripheral = await bleman.findHybridPeripheral(3000);
+                
+                clearInterval(searcher);
+                bleman?.destroy();
+                resolve(resultPeripheral);
+            } catch (error: any) {
+                console.error('Error searching for hybrid', error);
+            }
+        }, 5000);
+    })
+}
+
+app.on('ready', async () => {
     app.whenReady().then(() => {
         const mainWindow = new BrowserWindow({
             width: 800,
@@ -32,41 +58,31 @@ app.on('ready', () => {
       
     })
 
-    let sik = undefined;
-    let qrcode: string | undefined = undefined;
+    let sik = generateSessionIK();
+    let qrcode: string | undefined = await QRCode.toDataURL(generateQRCodeVal(sik));
     let hybridStarted = false;
     ipcMain.on('hybrid-start', async (event) => {
         try {
+            console.log(calculateHybridTunnelDomain(269))
+
             // React fix from double instantiating the hybrid
-            if (!hybridStarted) {
-                hybridStarted = true;
-
-                sik = generateSessionIK();
-                qrcode = await QRCode.toDataURL(generateQRCodeVal(sik))
-
-                event.reply('hybrid-start-ack', {status: 'ok', qrcode});
-            } else {
-                event.reply('hybrid-start-ack', {status: 'ok', qrcode});
-                return
+            event.reply('hybrid-start-ack', {status: 'ok', qrcode});
+           
+            if (hybridStarted) {
+                return;
             }
 
-            let resultPeripheral: any = undefined;
-            let bleman: BleSession | undefined;
-            let searcher = setInterval(async () => {
-                bleman?.destroy();
-                
-                bleman = new BleSession();
-                await bleman.startScanning();
-                resultPeripheral = await bleman.findHybridPeripheral(2500);
+            hybridStarted = true;
+            let result = await listenForHybridAdvertisement();
+            let serviceData = extractServiceData(result);
+            let decrypted = tryDecryptPayload(serviceData, sik);
 
-                bleman?.destroy();
-                console.log('resultPeripheral', resultPeripheral);
+            let tunnel = new HybridTunnel(decrypted, sik);
+            await tunnel.waitConnected(10000)
 
-                clearInterval(searcher);
-            }, 5000);
+            
         } catch (error: any) {
             console.error('Error starting hybrid', error);
-            // searcher?.destroy();
             event.reply('hybrid-start-ack', {status: 'error', message: error.message});
         }
     })

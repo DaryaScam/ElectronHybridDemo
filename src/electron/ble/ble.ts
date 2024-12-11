@@ -1,3 +1,12 @@
+/**
+ * 
+ * Blewrapper around child noble process
+ * 
+ * Created by Yuriy Ackermann <ackermann.yuriy@gmail.com> <@yackermann>
+ * As a part of DaryaScam Project <https://daryascam.info>
+ * 
+ */
+
 import { app, MessageChannelMain, utilityProcess } from 'electron';
 import path from 'path';
 
@@ -9,11 +18,13 @@ interface IPResponse {
     error: string;
 }
 
-interface Peripheral {
+export interface Peripheral {
+    type: string;
     id: string;
     advertisement: {
         localName: string;
         serviceUuids: string[];
+        serviceData: string;
     };
 }
 
@@ -23,7 +34,8 @@ const getLogDate = () => {
 };
 
 const HYBRID_SERVICE_UUID = '0000fff9-0000-1000-8000-00805f9b34fb';
-const HYBRID_ISH_SERVICE_PREFIX = 'f1d0';
+const HYBRID_ISH_SERVICE_PREFIX = 'f1d0c7a4';
+
 const serviceListIncludesHybridService = (serviceList: string[]): string | undefined => {
     let formattedServiceList = serviceList.map((service) => service.toLowerCase().replace(/-/g, ''));
     let formattedHybridService = HYBRID_SERVICE_UUID.toLowerCase().replace(/-/g, '');
@@ -42,6 +54,19 @@ const serviceListIncludesHybridService = (serviceList: string[]): string | undef
     }    
 }
 
+
+export const extractServiceData = (peripheralResp: Peripheral): Buffer => {
+    if(peripheralResp.type === SERVICE_TYPE_HYBRID) {
+        return Buffer.from(peripheralResp.advertisement.serviceData, 'hex');
+    } else if(peripheralResp.type === SERVICE_TYPE_HYBRID_ISH) {
+        const serviceData = peripheralResp.advertisement.serviceUuids.join('')
+        
+        
+        return Buffer.from(serviceData.substring(HYBRID_ISH_SERVICE_PREFIX.length), 'hex');
+    } else {
+        throw new Error('Unknown service type');
+    }
+}
 
 export class BleSession {
 
@@ -148,10 +173,10 @@ export class BleSession {
             }, timeout);
 
             this.subscribeToDiscovery((peripheral: any) => {
-                if(peripheral.rssi > -60){
+                if(peripheral.rssi > -55){
                     const serviceType = serviceListIncludesHybridService(peripheral.advertisement.serviceUuids);
                     if(serviceType) {
-                        peripheral.serviceType = serviceType;
+                        peripheral.type = serviceType;
                         this.stopScanning();
                         clearTimeout(timeouter);
                         resolve(peripheral);
@@ -177,34 +202,4 @@ export class BleSession {
     destroy() {
         this.childProcess.kill();
     }
-
-    // async searchAndExtractHybridResponses() {
-    //     return new Promise((resolve, reject) => {
-    //         noble.on('discover', async (peripheral) => {
-
-    //             // if (peripheral.advertisement.localName == 'MyPeripheral12345') {
-    //             //     console.log('Discovered', peripheral.advertisement.localName, peripheral.id);
-    //             //     console.log(peripheral.advertisement.serviceUuids);
-    //             // }
-    //             // if (peripheral.rssi > -60) {
-    //             //     console.log('Discovered', peripheral.advertisement.localName, peripheral.id, peripheral.rssi);
-    //             // }
-    //             // console.log('Services', peripheral.advertisement.serviceUuids);
-
-    //             if(peripheral.advertisement && peripheral.advertisement.serviceUuids && serviceListIncludesHybridService(peripheral.advertisement.serviceUuids)) {
-    //                 console.log('I AM DONE')
-    //                 console.log('Discovered', peripheral.advertisement.localName, peripheral.id);
-    //                 console.log(peripheral.advertisement.serviceUuids);
-    //                 this.stopScanning();
-    //                 resolve(peripheral);
-    //             }
-    //         });
-
-    //         setInterval(() => {
-    //             console.log('Restarting scan...');
-    //             this.stopScanning();
-    //             this.startScanning();
-    //         }, 2000);
-    //     })
-    // }
 }
