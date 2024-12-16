@@ -7,8 +7,9 @@ import { getPreloadPath } from './pathResolver.js';
 import { ipcMain } from 'electron';
 import { generateQRCodeVal, generateSessionIK } from './hybrid/hybrid.js';
 import { BleSession, extractServiceData, Peripheral } from './ble/ble.js';
-import { tryDecryptPayload } from './hybrid/crypto.js';
+import { EIK_KEY_PURPOSE, hybridHKDFDerive, tryDecryptPayload } from './hybrid/crypto.js';
 import { calculateHybridTunnelDomain, HybridTunnel } from './hybrid/tunnel.js';
+import { CaBLEv2 } from './hybrid/cablev2.js';
 
 const listenForHybridAdvertisement = async (): Promise<Peripheral> => {
     return new Promise((resolve, reject) => {
@@ -63,8 +64,6 @@ app.on('ready', async () => {
     let hybridStarted = false;
     ipcMain.on('hybrid-start', async (event) => {
         try {
-            console.log(calculateHybridTunnelDomain(269))
-
             // React fix from double instantiating the hybrid
             event.reply('hybrid-start-ack', {status: 'ok', qrcode});
            
@@ -80,6 +79,14 @@ app.on('ready', async () => {
             let tunnel = new HybridTunnel(decrypted, sik);
             await tunnel.waitConnected(10000)
 
+            // Establish encrypted tunnel
+            let psk = hybridHKDFDerive(sik.qrSecret, EIK_KEY_PURPOSE.PSK, 32);
+
+            const caBLEv2 = new CaBLEv2();
+            const initMsg = await caBLEv2.initialConnectMessage(psk, sik.identityKey);
+            console.log('initMsg', initMsg.msg.toString('hex'));
+            tunnel.sendMessage(initMsg.msg);
+            const phoneHandshake = tunnel.awaitMessage()
             
         } catch (error: any) {
             console.error('Error starting hybrid', error);

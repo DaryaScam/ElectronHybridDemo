@@ -132,7 +132,7 @@ export class HybridTunnel {
     }
     
     
-    async awaitMessage(timeout: number): Promise<Buffer> {
+    async awaitMessage(timeout: number = 30 * 1000): Promise<Buffer> {
         this.checkConnected();
       
         return new Promise((resolve, reject) => {
