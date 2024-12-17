@@ -75,8 +75,6 @@ export class HybridTunnel {
 
         this.wsslink = `wss://${tunnelServerDomain}/cable/connect/${routingIdHex}/${tunnelIDHex}`;
 
-        console.log(this.wsslink)
-
         this.ws = new WebSocket(this.wsslink);
    
         this.ws.onmessage = (event) => {

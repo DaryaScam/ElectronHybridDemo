@@ -15,11 +15,11 @@ interface StartHybridResult {
 
 interface HybridResult {
     status: string;
-    message: string;
+    message?: string;
 }
 
 electron.contextBridge.exposeInMainWorld('electron', {
-    startHybrid: (): Promise<string> => {
+    startAuth: (): Promise<string> => {
         return new Promise((resolve, reject) => {
             electron.ipcRenderer.send('hybrid-start');
             electron.ipcRenderer.on('hybrid-start-ack', (event, arg) => {
@@ -39,19 +39,33 @@ electron.contextBridge.exposeInMainWorld('electron', {
         })
     },
 
-    subscribeHybridResulrt: (callback: (result: HybridResult) => void) => {
-        electron.ipcRenderer.on('hybrid-result', (event, arg) => {
-            callback(arg);
-        });
-    },
-    
-    ping(): Promise<string> {
-        return new Promise((resolve) => {
-            electron.ipcRenderer.send('some-channel', 'ping');
-            electron.ipcRenderer.on('some-channel-reply', (event, arg) => {
-                console.log(arg); // prints "pong"
+    subscribeToAuthResult: (): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            electron.ipcRenderer.on('hybrid-result', (event, arg) => {
+                let darg = arg as HybridResult;
+
+                if (darg.status === 'ok') {
+                    resolve();
+                } else {
+                    reject(darg.message!);
+                }
+
+
+                // setTimeout(() => {
+                //     electron.ipcRenderer.send('listen-stop');
+                //     reject({ status: 'error', message: 'Timeout' });
+                // }, 5000);
             });
         })
     }
+    
+
+    // writeToMessenger: (message: string) => {
+    //     // Send CMD to messenger...
+    // }
+
+    // subscribeToMessenger: (callback: (message: string) => void) => {
+    //     // Receive updates from messenger../
+    // }
 
 });

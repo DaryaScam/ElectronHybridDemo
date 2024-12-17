@@ -12,12 +12,18 @@ function App() {
 
   useEffect(() => {
     if (!isHybridStarted) {
-      window.electron?.startHybrid()
+      window.electron?.startAuth()
       .then((url: string) => {
         console.log('QR Code URL', url);
         setQrCodeUrl(url);
         setIsHybridStarted(true);
-      }).catch((error: any) => {
+        return window.electron?.subscribeToAuthResult()
+      })
+      .then(() => {
+        window.localStorage.setItem('authenticated', 'true');
+        window.location.href = '/messages';
+      })
+      .catch((error: any) => {
         console.error('The error is:', error);
       });
     }

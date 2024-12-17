@@ -57,7 +57,6 @@ export const generateSessionIK = (): SessionIK => {
 }
 
 export const generateQRCodeVal = (sessionIK: SessionIK): string => {
-    console.log(sessionIK.identityKey.x962Key)
     let resultMap = new Map<number, any>()
     resultMap.set(0, sessionIK.identityKey.compressed) // a 33-byte, P-256, X9.62, compressed public key
     resultMap.set(1, sessionIK.qrSecret) // a 16-byte random qr secret

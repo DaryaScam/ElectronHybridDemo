@@ -1,3 +1,10 @@
+/**
+ * 
+ * Created by Yuriy Ackermann <ackermann.yuriy@gmail.com> <@yackermann>
+ * As a part of DaryaScam Project <https://daryascam.info>
+ * 
+ */
+
 import { createCipheriv, createDecipheriv } from 'crypto';
 import { kP256X962Length, Noise, NoiseProtocolName } from './noise/noise.js';
 import { EcdhKeyPair } from './hybrid.js';

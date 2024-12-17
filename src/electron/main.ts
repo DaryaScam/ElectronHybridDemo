@@ -1,4 +1,11 @@
-import {app, BrowserWindow, dialog, net, protocol} from 'electron';
+/**
+ * 
+ * Created by Yuriy Ackermann <ackermann.yuriy@gmail.com> <@yackermann>
+ * As a part of DaryaScam Project <https://daryascam.info>
+ * 
+ */
+
+import {app, BrowserWindow, protocol} from 'electron';
 import path from 'path';
 import QRCode from 'qrcode';
 
@@ -47,7 +54,7 @@ app.on('ready', async () => {
             },
         });
 
-        mainWindow.webContents.openDevTools();
+        // mainWindow.webContents.openDevTools();
 
         if(isDev) {
             mainWindow.loadURL('http://localhost:5123');
@@ -108,10 +115,16 @@ app.on('ready', async () => {
             let responseAccessToken: AuthTokenResult = JSON.parse(responseJson);
 
 
-            
+            console.log('Access Token:', responseAccessToken.token);
+
+            // Here you would store this access token, or key, or whaterver you decided for further communication with the phone
+
+            event.reply('hybrid-result', {status: 'ok' });
+
         } catch (error: any) {
             console.error('Error starting hybrid', error);
             event.reply('hybrid-start-ack', {status: 'error', message: error.message});
+            event.reply('hybrid-result', {status: 'ok', message: error.message});
         }
     })
 

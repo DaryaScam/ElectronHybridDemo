@@ -51,15 +51,15 @@ const classNames = (...classes) => {
 }
 
 const reset = () => {
-  window.localStorage.removeItem("access_token");
-  window.location.href = "/";
+  window.localStorage.removeItem('authenticated');
+  window.location.href = '/';
 }
 
 export default function Messages() {
 
-  // if (window.localStorage.getItem("access_token") === null) {
-  //   window.location.href = "/";
-  // }
+  if (!window.localStorage.getItem('authenticated')) {
+    window.location.href = '/';
+  }
     
   return (
     <>
