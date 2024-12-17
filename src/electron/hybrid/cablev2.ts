@@ -61,25 +61,25 @@ export class CaBLEv2 {
         }
     }
 
-    async processHandshakeResponse(peerHandshakeMessage: Buffer, ephermeralKey: EcdhKeyPair, identityKey: EcdhKeyPair | null): Promise<CaBLEHandshakeResult> {
+    async processHandshakeResponse(peerHandshakeAck: Buffer, ephermeralKey: EcdhKeyPair): Promise<CaBLEHandshakeResult> {
         if(!this.ns) {
             throw new Error('Noise was not initialised');
         }
 
-        if(peerHandshakeMessage.length < kP256X962Length) {
+        if(peerHandshakeAck.length < kP256X962Length) {
             throw new Error('Handshake is too short');
         }
 
-        const peerPointBytes = peerHandshakeMessage.subarray(0, kP256X962Length)
-        const ciphertext = peerHandshakeMessage.subarray(kP256X962Length)
+        const peerPointBytes = peerHandshakeAck.subarray(0, kP256X962Length)
+        const ciphertext = peerHandshakeAck.subarray(kP256X962Length)
 
         this.ns?.mixHash(peerPointBytes)
         this.ns?.mixKey(peerPointBytes);
         this.ns?.mixKey(ephermeralKey.deriveSecret(peerPointBytes));
 
-        if(identityKey != null) {
-            this.ns?.mixKey(identityKey.deriveSecret(peerPointBytes));
-        }
+        // if(identityKey != null) {
+        //     this.ns?.mixKey(identityKey.deriveSecret(peerPointBytes));
+        // }
 
         const plaintext = this.ns.decryptAndHash(ciphertext)
         if(!plaintext || plaintext.length == 0) {

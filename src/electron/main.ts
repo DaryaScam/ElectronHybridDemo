@@ -86,7 +86,9 @@ app.on('ready', async () => {
             const initMsg = await caBLEv2.initialConnectMessage(psk, sik.identityKey);
             console.log('initMsg', initMsg.msg.toString('hex'));
             tunnel.sendMessage(initMsg.msg);
-            const phoneHandshake = tunnel.awaitMessage()
+            const phoneHandshakeAck = await tunnel.awaitMessage()
+            let responseProcess = await caBLEv2.processHandshakeResponse(phoneHandshakeAck, initMsg.ephermeralKey);
+            console.log('responseProcess', responseProcess.trafficKeys.o1.toString('hex'));
             
         } catch (error: any) {
             console.error('Error starting hybrid', error);
