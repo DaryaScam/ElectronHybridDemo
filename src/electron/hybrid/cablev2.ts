@@ -1,5 +1,5 @@
-import { kP256X962Length, Noise, NoiseProtocolName } from '../noise/noise.js';
-import { HKDF3Output } from '../noise/types.js';
+import { createCipheriv, createDecipheriv } from 'crypto';
+import { kP256X962Length, Noise, NoiseProtocolName } from './noise/noise.js';
 import { EcdhKeyPair } from './hybrid.js';
 
 interface CaBLEInitialMessage {
@@ -8,13 +8,23 @@ interface CaBLEInitialMessage {
 }
 
 interface CaBLEHandshakeResult {
-    trafficKeys: HKDF3Output;
     handshakeHash: Buffer;
 }
 
+interface AEADSetupResult {
+    nonce: Buffer;
+}
+
+const paddingGranularity = 32;
+const mib = 1024 * 1024;
 
 export class CaBLEv2 {
     ns: Noise | null = null;
+
+    clientToPlatformKey: Buffer | null = null;
+    platformToClientKey: Buffer | null = null;
+    clientToPlatformSEQ: number = 0;
+    platformToClientSEQ: number = 0;
   
     // Private key must be Priv + Pub
     async initialConnectMessage(psk: Buffer | null, privateKey: EcdhKeyPair | null): Promise<CaBLEInitialMessage> {
@@ -86,14 +96,76 @@ export class CaBLEv2 {
             throw new Error('Failed to decrypt handshake message');
         }
 
+        let trafficKeys = this.ns.getTrafficKeys();
+        this.clientToPlatformKey = trafficKeys.o1;
+        this.platformToClientKey = trafficKeys.o2;
+        
+
         return {
-            trafficKeys: this.ns.getTrafficKeys(),
             handshakeHash: this.ns.handshakeHash
         }
     }
 
 
-    async respondToHandshake() {
-        
+    // ENC
+    getAEADNonce(seq: number): Buffer {
+        let nonce = Buffer.alloc(12);
+        nonce.writeUInt32BE(seq, 0);
+        return nonce;
     }
+
+    decryptFromClient(ciphertext: Buffer): Buffer {
+        if(!this.clientToPlatformKey) {
+            throw new Error('Client to platform key is not set');
+        }
+
+        let nonce = this.getAEADNonce(this.clientToPlatformSEQ);
+        this.clientToPlatformSEQ++;
+
+        const decipher = createDecipheriv('aes-256-gcm', this.clientToPlatformKey, nonce);
+        decipher.setAAD(Buffer.alloc(0));
+
+        const tag = ciphertext.subarray(ciphertext.length - 16);
+        const encryptedData = ciphertext.subarray(0, ciphertext.length - 16);
+        decipher.setAuthTag(tag);
+
+        try {
+            let rawPlaintext = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
+            let paddingLen = rawPlaintext[rawPlaintext.length - 1];
+            if (paddingLen + 1 > rawPlaintext.length) {
+                throw new Error('Invalid padding length');
+            }
+
+            return rawPlaintext.subarray(0, rawPlaintext.length - paddingLen - 1);
+        } catch (err) {
+            throw new Error('Failed to decrypt. ' + err);
+        }
+    }
+
+    encryptForClient(plaintext: Buffer): Buffer {
+        if(!this.platformToClientKey) {
+            throw new Error('Platform to client key is not set');
+        }
+
+        if (plaintext.length > mib) {
+            throw new Error('Message is too long');
+        }
+
+        const extraBytes = paddingGranularity - (plaintext.length % paddingGranularity)
+
+        const paddedPlaintext = Buffer.concat([plaintext, Buffer.alloc(extraBytes, 0x00)]);
+        paddedPlaintext[paddedPlaintext.length - 1] = extraBytes - 1;
+
+        let nonce = this.getAEADNonce(this.platformToClientSEQ);
+        this.platformToClientSEQ++;
+
+        const cipher = createCipheriv('aes-256-gcm', this.platformToClientKey, nonce);
+        cipher.setAAD(Buffer.alloc(0));
+
+        const rawCiphertext = Buffer.concat([cipher.update(paddedPlaintext), cipher.final()]);
+        const tag = cipher.getAuthTag();
+
+        return Buffer.concat([rawCiphertext, tag]);
+    }
+
 }

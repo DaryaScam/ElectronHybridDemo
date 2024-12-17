@@ -8,8 +8,9 @@ import { ipcMain } from 'electron';
 import { generateQRCodeVal, generateSessionIK } from './hybrid/hybrid.js';
 import { BleSession, extractServiceData, Peripheral } from './ble/ble.js';
 import { EIK_KEY_PURPOSE, hybridHKDFDerive, tryDecryptPayload } from './hybrid/crypto.js';
-import { calculateHybridTunnelDomain, HybridTunnel } from './hybrid/tunnel.js';
+import { HybridTunnel } from './hybrid/tunnel.js';
 import { CaBLEv2 } from './hybrid/cablev2.js';
+import { AuthTokenRequestInit, AuthTokenResult } from './hybrid/json.js';
 
 const listenForHybridAdvertisement = async (): Promise<Peripheral> => {
     return new Promise((resolve, reject) => {
@@ -79,16 +80,34 @@ app.on('ready', async () => {
             let tunnel = new HybridTunnel(decrypted, sik);
             await tunnel.waitConnected(10000)
 
-            // Establish encrypted tunnel
+            // Establish encrypted Noise tunnel
             let psk = hybridHKDFDerive(sik.qrSecret, EIK_KEY_PURPOSE.PSK, 32);
 
             const caBLEv2 = new CaBLEv2();
+            // Generating initial handshake message
             const initMsg = await caBLEv2.initialConnectMessage(psk, sik.identityKey);
-            console.log('initMsg', initMsg.msg.toString('hex'));
             tunnel.sendMessage(initMsg.msg);
             const phoneHandshakeAck = await tunnel.awaitMessage()
+
+            // Process handshake response
             let responseProcess = await caBLEv2.processHandshakeResponse(phoneHandshakeAck, initMsg.ephermeralKey);
-            console.log('responseProcess', responseProcess.trafficKeys.o1.toString('hex'));
+
+            let appAuthTokenRequest: AuthTokenRequestInit = {
+                handshakeHashHex: responseProcess.handshakeHash.toString('hex'),
+                os: `${process.platform}-${process.arch}`,
+            }
+
+            let appAuthTokenRequestJson = JSON.stringify(appAuthTokenRequest);
+
+            let encryptedHello = caBLEv2.encryptForClient(Buffer.from(appAuthTokenRequestJson, 'utf-8'));
+            tunnel.sendMessage(encryptedHello);
+
+            let encryptedResponse = await tunnel.awaitMessage();
+            let decryptedResponse = caBLEv2.decryptFromClient(encryptedResponse);
+            let responseJson = decryptedResponse.toString('utf-8');
+            let responseAccessToken: AuthTokenResult = JSON.parse(responseJson);
+
+
             
         } catch (error: any) {
             console.error('Error starting hybrid', error);
